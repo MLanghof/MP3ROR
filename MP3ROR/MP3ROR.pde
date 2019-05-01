@@ -13,20 +13,19 @@ import java.nio.FloatBuffer;
 Minim minim;  
 AudioPlayer player;
 
-String filePath = "C:/Users/Max/Music/Electronic/Fresch/Maybe.mp3";
+String filePath = "D:/Users/Max/Music/Electronic/Fresch/KDrew - Last Train To Paradise (Dr. Fresch Remix).mp3";
 
 byte[] songBytes;
 
 final int BYTES_PER_ROW = 32;
 
-final byte[] FRAME_HEADER_BYTES = {(byte)0xFF, (byte)0xFB, (byte)0x78, (byte)0x64};
-final int FRAME_HEADER_INT = ByteBuffer.wrap(FRAME_HEADER_BYTES).getInt();
 
 int index = 0;
+Header currentHeader;
 
 void setup()
 {
-  size(1600, 1200);
+  size(1600, 800);
   
   minim = new Minim(this);
   
@@ -34,6 +33,9 @@ void setup()
   songBytes = loadBytes(filePath);
   
   println("Loaded", songBytes.length, "bytes from", filePath);
+  
+  
+  runTests();
 }
 
 
@@ -48,6 +50,18 @@ void draw()
   
   if (songBytes != null)
     drawByteStream(g);
+    
+  if (currentHeader != null)
+  {
+    int x = 20 * BYTES_PER_ROW + 40;
+    int y = 20;
+    text("Index: " + index + " of " + songBytes.length, x, y); y += 20;
+    text("Frame length in bytes: " +  currentHeader.getFrameLengthInBytes(), x, y); y += 20;
+    text(currentHeader.version.toString(), x, y); y += 20;
+    text(currentHeader.layer.toString(), x, y); y += 20;
+    text("Bit Rate: " + currentHeader.bitrateKbps, x, y); y += 20;
+    text("Sample Rate: " + currentHeader.sampleRateHz, x, y); y += 20;
+  }
 }
 
 void keyPressed()
@@ -67,12 +81,11 @@ void drawByteStream(PGraphics g)
     {
       byte b = buf.get(localIndex);
       ++localIndex;
-      if (b == (byte)0xFF)
-        g.fill(255, 0, 0); //<>//
-      else if (b == (byte)0xFB)
+      g.fill(255);
+      if (currentHeader != null && localIndex - index <= currentHeader.getFrameLengthInBytes())
         g.fill(0, 255, 0);
-      else
-        g.fill(255);
+      if (b == (byte)0xFB)
+        g.fill(255, 0, 0);
       g.text(hex(b, 2), 20 * i, y);
     }
     
@@ -85,22 +98,17 @@ void onFileSelected(File file)
 }
 
 void seekNextFrame()
-{
-  index += BYTES_PER_ROW;
-  if (true)
-    return;
-  
+{  
   ByteBuffer buf = ByteBuffer.wrap(songBytes);
   do
   {
     ++index;
-    //if (buf.getInt(index) == FRAME_HEADER_INT) {
-    if (buf.get(index) == 0xFF) {
-      println("Found next frame start at byte", index);
-      break;
+    currentHeader = tryMakeHeader(buf, index);
+    if (currentHeader != null) {
+      return;
     }
   } while(index < songBytes.length - 4);
   
   println("Did not find another frame header!", buf.remaining());
-  //index = 0;
+  index = 0;
 }
