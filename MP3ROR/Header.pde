@@ -61,10 +61,7 @@ class Header
   
   ////
   
-  int getFrameLengthInBytes()
-  {
-    return (int)(144 * bitrateKbps / (sampleRateHz / 1000.0)) + (padding ? 1 : 0);
-  }
+  int frameLengthInBytes;
   
   Header(ByteBuffer buf, int pos)
   {
@@ -83,7 +80,7 @@ class Header
     layer = Layer.values()[intFromBits(bits, 13, 2)];
     if (layer != Layer.LAYER3)
       return;
-    crcProtection = bits.get(15);
+    crcProtection = !bits.get(15);
     
     bitrateIndex = intFromBits(bits, 16, 4);
     bitrateKbps = getBitrateFromIndex(version, layer, bitrateIndex);
@@ -107,6 +104,9 @@ class Header
     emphasis = intFromBits(bits, 30, 2);
     
     valid = true;
+    
+    
+    frameLengthInBytes = (int)(144 * bitrateKbps / (sampleRateHz / 1000.0)) + (padding ? 1 : 0);
   }
 }
 
@@ -122,9 +122,15 @@ Header tryMakeHeader(ByteBuffer buf, int pos)
     return null;
   
   // If we're not at the end, check that another header starts after this frame.
-  int frameLength = header.getFrameLengthInBytes();
-  if (pos + frameLength < buf.limit() && buf.get(pos + frameLength) != (byte)0xFF)
-    return null;
+  int frameLength = header.frameLengthInBytes;
+  if (pos + frameLength + 1 < buf.limit()) {
+    if (buf.get(pos + frameLength) != (byte)0xFF)
+      return null;
+    if (!new Header(buf, pos + frameLength).valid)
+      return null;
+  }
+  else
+    assert(false);
   
   return header;
 }
