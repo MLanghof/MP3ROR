@@ -41,6 +41,8 @@ void setup()
   
   minim = new Minim(this);
   
+  hint(ENABLE_KEY_REPEAT);
+  
   runTests();
 }
 
