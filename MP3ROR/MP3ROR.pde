@@ -32,6 +32,9 @@ ArrayList<PhysicalFrame> frames;
 
 boolean doneLoading = false;
 
+boolean showByteStream = true;
+boolean showFrameInfo = true;
+
 void setup()
 {
   size(1800, 900, P2D);
@@ -57,14 +60,16 @@ void draw()
   
   PhysicalFrame currentFrame = frames.get(currentFrameIndex);
   
-  if (songBytes != null)
+  if (showByteStream && songBytes != null)
     drawByteStream(g, currentFrame);
   
-  pushMatrix();
-  translate(20 + 20 * BYTES_PER_ROW, 20);
-  currentFrame.drawOn(g);
-  popMatrix();
-  
+  if (showFrameInfo)
+  {
+    pushMatrix();
+    translate(20 + (showByteStream ? 20 * BYTES_PER_ROW : 0), 20);
+    currentFrame.drawOn(g);
+    popMatrix();
+  }
     
   
   beginShape(LINES);
@@ -137,27 +142,44 @@ void keyPressed()
   if (!doneLoading)
     return;
     
-  if (keyCode == RIGHT)
-    seekNextFrame(+1);
-  if (keyCode == LEFT)
-    seekNextFrame(-1);
-    
-  if (keyCode == UP)
-    byteOffset -= BYTES_PER_ROW;
-  if (keyCode == DOWN)
-    byteOffset += BYTES_PER_ROW;
-    
-  if (key == ' ')
-    if (player.isPlaying())
-      player.pause();
-    else
-      player.play();
-    
-  if (key == 'o')
+  switch (keyCode)
   {
-    player.close();
-    doneLoading = false;
-    selectInput("Select an MP3 file to use: ", "onFileSelected", new File(hardcodedFilePath));
+    case RIGHT:
+      seekNextFrame(+1);
+      break;
+    case LEFT:
+      seekNextFrame(-1);
+      break;
+    
+    case UP:
+      byteOffset -= BYTES_PER_ROW;
+      break;
+    case DOWN:
+      byteOffset += BYTES_PER_ROW;
+      break;
+  }
+  
+  switch (key)
+  {
+    case ' ':
+      if (player.isPlaying())
+        player.pause();
+      else
+        player.play();
+      break;
+    
+    case 'o':
+      player.close();
+      doneLoading = false;
+      selectInput("Select an MP3 file to use: ", "onFileSelected", new File(hardcodedFilePath));
+      break;
+    
+    case 'b':
+      showByteStream = !showByteStream;
+      break;
+    case 'i':
+      showFrameInfo = !showFrameInfo;
+      break;
   }
     
 }
