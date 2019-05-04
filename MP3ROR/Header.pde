@@ -108,6 +108,29 @@ class Header
     
     frameLengthInBytes = (int)(144 * bitrateKbps / (sampleRateHz / 1000.0)) + (padding ? 1 : 0);
   }
+  
+  void drawOn(PGraphics g)
+  {
+    g.fill(200);
+    g.text("Frame length in bytes: " +  frameLengthInBytes, 0, 0);
+    g.translate(0, 20);
+    g.text(version.toString(), 0, 0);
+    g.translate(0, 20);
+    g.text(layer.toString(), 0, 0);
+    g.translate(0, 20);
+    g.text("Has CRC: " + crcProtection, 0, 0);
+    g.translate(0, 20);
+    g.text("Bit Rate: " + bitrateKbps, 0, 0);
+    g.translate(0, 20);
+    g.text("Sample Rate: " + sampleRateHz, 0, 0);
+    g.translate(0, 20);
+    g.text("Mode: " + mode.toString(), 0, 0);
+    g.translate(0, 20);
+    g.text("Mode extension: " + modeExtension.toString(), 0, 0);
+    g.translate(0, 20);
+    g.text("Copyrighted: " + copyrighted, 0, 0);
+    g.translate(0, 20);
+  }
 }
 
 Header tryMakeHeader(ByteBuffer buf, int pos)
@@ -129,8 +152,6 @@ Header tryMakeHeader(ByteBuffer buf, int pos)
     if (!new Header(buf, pos + frameLength).valid)
       return null;
   }
-  else
-    assert(false);
   
   return header;
 }
