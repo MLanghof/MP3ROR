@@ -16,8 +16,6 @@ class PhysicalFrame
   int headerStartByte;
   int headerAndSideInfoLengthInBytes;
   
-  float movingAverage;
-  
   int getUnusedBytes()
   {
     if (false)

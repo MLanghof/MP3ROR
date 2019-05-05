@@ -30,10 +30,22 @@ int currentFrameIndex = 0;
 
 ArrayList<PhysicalFrame> frames;
 
+ArrayList<ICache> caches = new ArrayList();
+FrameValueCache totalGranuleLengths = register(new FrameValueCache(new AverageAllGranuleLengthCalc(), true));
+FrameValueCache leftGranuleLengths = register(new FrameValueCache(new AverageChannelGranuleLengthCalc(0), true));
+FrameValueCache rightGranuleLengths = register(new FrameValueCache(new AverageChannelGranuleLengthCalc(1), true));
+
+FrameValueCache allGranuleGains = register(new FrameValueCache(new AverageAllGranuleGlobalGainCalc(), true));
+FrameValueCache leftGranuleGains = register(new FrameValueCache(new AverageChannelGranuleGlobalGainCalc(0), true));
+FrameValueCache rightGranuleGains = register(new FrameValueCache(new AverageChannelGranuleGlobalGainCalc(1), true));
+
 boolean doneLoading = false;
 
 boolean showByteStream = true;
 boolean showFrameInfo = true;
+boolean showWaveform = true;
+
+float plotFramesPerDot = 1.0;
 
 void setup()
 {
@@ -72,44 +84,40 @@ void draw()
     currentFrame.drawOn(g);
     popMatrix();
   }
-    
   
-  beginShape(LINES);
-  strokeWeight(0.5);
-  float prevFX = 0;
-  float prevFY1 = 0;
-  float prevFY2 = 0;
-  for (int i = 0; i < frames.size(); ++i)
-  {
-    PhysicalFrame frame = frames.get(i);
-    float fx = map(i, 0, frames.size(), 0, width);
-    float fy1 = map(frame.getUnusedBytes(), 0, frame.header.frameLengthInBytes, height, 0);
-    //float fy1 = map(frame.header.frameLengthInBytes, 0, 4096, height, 0);
-    //float fy2 = map(frame.movingAverage, 0, frame.header.frameLengthInBytes, height, 0);
-    float fy2 = map(frame.movingAverage, 0, 4096, height, 0);
-    
-    stroke(200);
-    vertex(prevFX, prevFY1);
-    vertex(fx, fy1);
-    
-    stroke(100);
-    vertex(fx, height);
-    vertex(fx, fy1);
-    
-    stroke(255, 0, 0);
-    if (i > 0) {
-      vertex(prevFX, prevFY2);
-      vertex(fx, fy2);
-    }
-    prevFX = fx;
-    prevFY1 = fy1;
-    prevFY2 = fy2;
-  }
-  endShape();
+  float percent = currentFrameIndex / float(frames.size());
+  g.pushMatrix();
+  g.translate(0, 300);
+  g.stroke(200, 200, 200, 150);
+  drawMovingPlot(g, totalGranuleLengths.values, percent, width, height / 3);
+  g.stroke(140, 200, 140, 100);
+  drawMovingPlot(g, leftGranuleLengths.values, percent, width, height / 3);
+  g.stroke(200, 140, 140, 100);
+  drawMovingPlot(g, rightGranuleLengths.values, percent, width, height / 3);
+  
+  g.translate(0, 300);
+  g.stroke(200, 200, 200);
+  drawMovingPlot(g, allGranuleGains.values, percent, width, height / 3);
+  g.stroke(140, 200, 240, 100);
+  drawMovingPlot(g, leftGranuleGains.values, percent, width, height / 3);
+  g.stroke(200, 140, 240, 100);
+  drawMovingPlot(g, rightGranuleGains.values, percent, width, height / 3);
+  g.popMatrix();
   
   float fpos = map(player.position(), 0, getRealPlayerLength(), 0, width);
-  stroke(255, 0, 0);
+  stroke(255, 0, 0, 120);
   line(fpos, 0, fpos, height);
+  fpos = percent * width;
+  stroke(0, 255, 0, 120);
+  line(fpos, 0, fpos, height);
+  
+  float forecastPercent = float(mouseX) / width;
+  float forecastFrameDiff = (forecastPercent - percent) * frames.size();
+  float plotPixelsPerFrame = 1.0 / plotFramesPerDot;
+  float clickForecastX = percent * width + plotPixelsPerFrame * forecastFrameDiff;
+  stroke(0, 120, 0, 120);
+  line(clickForecastX, 0, clickForecastX, height);
+  
   
   if (player.isPlaying()) {
     currentFrameIndex = (int)map(player.position(), 0, getRealPlayerLength(), 0, frames.size()) - 1; 
@@ -117,26 +125,24 @@ void draw()
     seekNextFrame(+1);
   }
   
-  if (currentFrameIndex >= 0)
+  if (showWaveform)
   {
-    float fpos2 = map(26 * currentFrameIndex, 0, getRealPlayerLength(), 0, width);
-    stroke(0, 255, 0);
-    line(fpos2, 0, fpos2, height);
-  }
-  
-  for(int i = 0; i < player.bufferSize() - 1; i++)
-  {
-    float x1 = map(i, 0, player.bufferSize(), 0, width);
-    float x2 = map(i+1, 0, player.bufferSize(), 0, width);
-    line(x1, 50 + player.left.get(i)*50, x2, 50 + player.left.get(i+1)*50);
-    line(x1, 150 + player.right.get(i)*50, x2, 150 + player.right.get(i+1)*50);
+    g.stroke(80);
+    for(int i = 0; i < player.bufferSize() - 1; i++)
+    {
+      float x1 = map(i, 0, player.bufferSize(), 0, width);
+      float x2 = map(i+1, 0, player.bufferSize(), 0, width);
+      line(x1, 50 + player.left.get(i)*50, x2, 50 + player.left.get(i+1)*50);
+      line(x1, 150 + player.right.get(i)*50, x2, 150 + player.right.get(i+1)*50);
+    }
   }
   
   fpos = map(frames.get(currentFrameIndex).headerStartByte, frames.get(0).headerStartByte, songBytes.length, 0, width);
   stroke(0, 0, 255);
   line(fpos, 0, fpos, height);
   
-  text("FPS: " + frameRate, width - 90, 20);
+  text("FPS: " + frameRate, width - 120, 20);
+  text("Player: " + player.position() / 1000.0, width - 120, 40);
 }
 
 void keyPressed()
@@ -182,6 +188,9 @@ void keyPressed()
     case 'i':
       showFrameInfo = !showFrameInfo;
       break;
+    case 'w':
+      showWaveform = !showWaveform;
+      break;
   }
     
 }
@@ -198,6 +207,12 @@ void mousePressed()
   
   println("Player position:", player.position());
   println("Player length:", getRealPlayerLength());
+}
+
+void mouseWheel(MouseEvent event)
+{
+  plotFramesPerDot *= pow(0.98, -event.getCount());
+  println(plotFramesPerDot);
 }
 
 
@@ -266,22 +281,21 @@ void onFileSelected(File file)
   frames = new ArrayList();
   ByteBuffer buf = ByteBuffer.wrap(songBytes);
   int pos = -1;
-  float movingAverage = 0;
-  final float rate = 0.1;
   do
   {
     ++pos;
     PhysicalFrame frame = tryMakePhysicalFrame(buf, pos);
     if (frame != null) {
       frames.add(frame);
-      movingAverage *= 1 - rate;
-      //movingAverage += rate * frame.getUnusedBytes();
-      movingAverage += rate * frame.header.frameLengthInBytes;
-      frame.movingAverage = movingAverage;
     }
   } while(pos < songBytes.length - 4);
   
   println("Done parsing", frames.size(), "frames!");
+  
+  for (ICache cache : caches)
+    cache.update();
+  
+  println("Done updating caches!");
   
   doneLoading = true;
 }
