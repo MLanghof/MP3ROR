@@ -1,34 +1,27 @@
 
 void drawCompressedPlot(PGraphics g, float[] relativeValues, int w, int h)
 {
-  float prevFX = 0;
-  float prevFY = 0;
   int count = relativeValues.length;
   
-  g.beginShape(LINES);
+  g.noFill();
+  g.beginShape();
   for (int i = 0; i < count; ++i)
   {
     float fx = map(i, 0, frames.size(), 0, w);
     float fy = h - relativeValues[i] * h;
-    
-    g.vertex(prevFX, prevFY);
     g.vertex(fx, fy);
-    
-    prevFX = fx;
-    prevFY = fy;
   }
   g.endShape();
 }
 
 void drawMovingPlot(PGraphics g, float[] relativeValues, float percent, int w, int h)
 {
-  float prevFX = 0;
-  float prevFY = 0;
   int count = relativeValues.length;
   int onscreenCount = ceil(w * plotFramesPerDot);
   int offscreenCount = count - onscreenCount;
   
-  g.beginShape(LINES);
+  g.noFill();
+  g.beginShape();
   for (int onscreenIndex = 0; onscreenIndex < onscreenCount; ++onscreenIndex)
   {
     int index = onscreenIndex + round(percent * offscreenCount);
@@ -36,14 +29,10 @@ void drawMovingPlot(PGraphics g, float[] relativeValues, float percent, int w, i
       continue;
     if (index >= relativeValues.length)
       break;
+      
     float fx = onscreenIndex / plotFramesPerDot;
     float fy = h - relativeValues[index] * h;
-    
-    g.vertex(prevFX, prevFY);
     g.vertex(fx, fy);
-    
-    prevFX = fx;
-    prevFY = fy;
   }
   g.endShape();
 }
