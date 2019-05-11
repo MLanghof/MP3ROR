@@ -1,24 +1,18 @@
-import ddf.minim.*;
-import ddf.minim.analysis.*;
-import ddf.minim.signals.*;
-import ddf.minim.spi.*;
 
-import ddf.minim.analysis.*;
-import ddf.minim.spi.*;
-import ddf.minim.*;
+import processing.sound.*;
 
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
-Minim minim;  
-AudioPlayer player;
+SoundFile player;
 
-String hardcodedFilePath = "D:/Users/Max/Music/Electronic/Fresch/KDrew - Last Train To Paradise (Dr. Fresch Remix).mp3";
+
+//String hardcodedFilePath = "D:/Users/Max/Music/Electronic/Fresch/KDrew - Last Train To Paradise (Dr. Fresch Remix).mp3";
 //String hardcodedFilePath = "D:/Users/Max/Music/Electronic/Fresch/02_-_Destroy_Everything_You_Touch.mp3";
 //String hardcodedFilePath = "D:/Users/Max/Music/Electronic/Fresch/06_-_Know_Your_Enemy.mp3";
 //String hardcodedFilePath = "D:/Users/Max/Music/Electronic/Fresch/07_-_Last_Nite.mp3";
 //String hardcodedFilePath = "D:/Users/Max/Music/Electronic/Fresch/01 Sehnsucht.mp3";
-//String hardcodedFilePath = "D:/Users/Max/Music/Electronic/Fresch/potato.mp3";
+String hardcodedFilePath = "D:/Users/Max/Music/Electronic/Fresch/potatocbr.mp3";
 
 byte[] songBytes;
 
@@ -51,8 +45,6 @@ void setup()
 {
   size(1800, 900, P2D);
   
-  minim = new Minim(this);
-  
   hint(ENABLE_KEY_REPEAT);
   
   runTests();
@@ -65,8 +57,8 @@ void draw()
   
   if (player == null && frameCount == 1)
   {
-    //selectInput("Select an MP3 file to use: ", "onFileSelected", new File(filePath));
-    thread("loadHardcodedFile");
+    selectInput("Select an MP3 file to use: ", "onFileSelected", new File(hardcodedFilePath));
+    //thread("loadHardcodedFile");
   }
   
   if (!doneLoading)
@@ -104,7 +96,7 @@ void draw()
   drawMovingPlot(g, rightGranuleGains.values, percent, width, height / 3);
   g.popMatrix();
   
-  float fpos = map(player.position(), 0, getRealPlayerLength(), 0, width);
+  float fpos = width * player.percent() / 100;
   stroke(255, 0, 0, 120);
   line(fpos, 0, fpos, height);
   fpos = percent * width;
@@ -120,7 +112,7 @@ void draw()
   
   
   if (player.isPlaying()) {
-    currentFrameIndex = (int)map(player.position(), 0, getRealPlayerLength(), 0, frames.size()) - 1; 
+    currentFrameIndex = (int)(player.percent() / 100 * frames.size()) - 1; 
     
     seekNextFrame(+1);
   }
@@ -128,21 +120,23 @@ void draw()
   if (showWaveform)
   {
     g.stroke(80);
-    for(int i = 0; i < player.bufferSize() - 1; i++)
-    {
-      float x1 = map(i, 0, player.bufferSize(), 0, width);
-      float x2 = map(i+1, 0, player.bufferSize(), 0, width);
-      line(x1, 50 + player.left.get(i)*50, x2, 50 + player.left.get(i+1)*50);
-      line(x1, 150 + player.right.get(i)*50, x2, 150 + player.right.get(i+1)*50);
-    }
+    //for(int i = 0; i < player.frames() - 1; i++)
+    //{
+    //  float x1 = map(i, 0, player.frames(), 0, width);
+    //  float x2 = map(i+1, 0, player.frames(), 0, width);
+    //  line(x1, 50 + player.left.get(i)*50, x2, 50 + player.left.get(i+1)*50);
+    //  line(x1, 150 + player.right.get(i)*50, x2, 150 + player.right.get(i+1)*50);
+    //}
   }
   
-  fpos = map(frames.get(currentFrameIndex).headerStartByte, frames.get(0).headerStartByte, songBytes.length, 0, width);
-  stroke(0, 0, 255);
-  line(fpos, 0, fpos, height);
+  //fpos = map(frames.get(currentFrameIndex).headerStartByte, frames.get(0).headerStartByte, songBytes.length, 0, width);
+  //stroke(0, 0, 255);
+  //line(fpos, 0, fpos, height);
   
-  text("FPS: " + frameRate, width - 120, 20);
-  text("Player: " + player.position() / 1000.0, width - 120, 40);
+  text("FPS: " + frameRate, width - 150, 20);
+  text("Player pos: " + player.position(), width - 150, 40);
+  text("Player %:   " + player.percent(), width - 150, 60);
+  text("Player dur: " + player.duration(), width - 150, 80);
 }
 
 void keyPressed()
@@ -177,7 +171,7 @@ void keyPressed()
       break;
     
     case 'o':
-      player.close();
+      player.stop();
       doneLoading = false;
       selectInput("Select an MP3 file to use: ", "onFileSelected", new File(hardcodedFilePath));
       break;
@@ -201,12 +195,11 @@ void mousePressed()
     return;
   
   float fpos = float(mouseX) / width;
-  int startFrom = round(fpos * getRealPlayerLength());
-  player.play(startFrom);
-  player.cue(startFrom);
+  float startFrom = round(fpos * player.duration());
+  player.jump(startFrom);
   
   println("Player position:", player.position());
-  println("Player length:", getRealPlayerLength());
+  println("Player length:", player.duration());
 }
 
 void mouseWheel(MouseEvent event)
@@ -271,8 +264,8 @@ void onFileSelected(File file)
 {
   String filePath = file.getAbsolutePath();
   
-  player = minim.loadFile(filePath, 1024);
-  player.setGain(-20);
+  player = new SoundFile(this, filePath);
+  player.amp(0.2);
   
   songBytes = loadBytes(filePath);
   
