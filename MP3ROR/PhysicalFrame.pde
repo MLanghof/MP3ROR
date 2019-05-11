@@ -4,7 +4,7 @@ class PhysicalFrame
   {
     this.header = header;
     this.sideInformation = sideInformation;
-    this.rest = rest;
+    this.bytes = rest;
     this.headerStartByte = headerStartByte;
     
     headerAndSideInfoLengthInBytes = 4 + sideInformation.byteCount; 
@@ -12,7 +12,7 @@ class PhysicalFrame
   
   Header header;
   SideInformation sideInformation;
-  byte[] rest;
+  byte[] bytes;
   int headerStartByte;
   int headerAndSideInfoLengthInBytes;
   
@@ -20,15 +20,15 @@ class PhysicalFrame
   {
     if (false)
     {
-    for (int i = 0; i < rest.length; ++i)
-      if (rest[rest.length - i - 1] != 0)
+    for (int i = 0; i < bytes.length; ++i)
+      if (bytes[bytes.length - i - 1] != 0)
         return i;
     }
     else
     {
       int ret = 0;
-      for (int i = 0; i < rest.length; ++i)
-        if (rest[rest.length - i - 1] == (byte)0xFF)
+      for (int i = 0; i < bytes.length; ++i)
+        if (bytes[bytes.length - i - 1] == (byte)0xFF)
           ++ret;
       return ret;
     }
@@ -51,19 +51,24 @@ class PhysicalFrame
 
 
 
-PhysicalFrame tryMakePhysicalFrame(ByteBuffer buf, int pos)
+PhysicalFrame tryMakePhysicalFrame(ByteBuffer buf, int pos, boolean beExtraSafe)
 {
-  Header header = tryMakeHeader(buf, pos);
+  Header header = tryMakeHeader(buf, pos, beExtraSafe);
   if (header == null)
     return null;
     
   SideInformation sideInformation = new SideInformation(buf, pos + 4, header.mode != Mode.SINGLE_CHANNEL);
   
   int frameLength = header.frameLengthInBytes;
-  byte[] restBytes = new byte[frameLength - 4];
-  buf.position(pos+4);
-  buf.get(restBytes, 0, frameLength - 4);
+  
+  // I've seen files that were one byte short...
+  if (buf.limit() < pos+frameLength)
+    return null;
+  
+  byte[] frameBytes = new byte[frameLength];
+  buf.position(pos);
+  buf.get(frameBytes, 0, frameLength);
   buf.rewind();
   
-  return new PhysicalFrame(header, sideInformation, restBytes, pos);
+  return new PhysicalFrame(header, sideInformation, frameBytes, pos);
 }

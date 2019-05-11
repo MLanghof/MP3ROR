@@ -278,17 +278,7 @@ void onFileSelected(File file)
   
   println("Loaded", songBytes.length, "bytes from", filePath);
   
-  frames = new ArrayList();
-  ByteBuffer buf = ByteBuffer.wrap(songBytes);
-  int pos = -1;
-  do
-  {
-    ++pos;
-    PhysicalFrame frame = tryMakePhysicalFrame(buf, pos);
-    if (frame != null) {
-      frames.add(frame);
-    }
-  } while(pos < songBytes.length - 4);
+  parseBytes(songBytes);
   
   println("Done parsing", frames.size(), "frames!");
   
@@ -298,6 +288,30 @@ void onFileSelected(File file)
   println("Done updating caches!");
   
   doneLoading = true;
+}
+
+void parseBytes(byte[] songBytes)
+{
+  ByteBuffer buf = ByteBuffer.wrap(songBytes);
+  frames = new ArrayList();
+  int pos = 0;
+  
+  int start = millis();
+  while (pos < songBytes.length - 4)
+  {
+    // If we haven't found any valid headers yet, make sure that we get the
+    // first one right.
+    boolean beExtraSafe = (frames.size() == 0);
+    PhysicalFrame frame = tryMakePhysicalFrame(buf, pos, beExtraSafe);
+    if (frame != null) {
+      frames.add(frame);
+      pos += frame.header.frameLengthInBytes;
+    }
+    else {
+      ++pos;
+    }
+  }
+  println(millis() - start, "ms");
 }
 
 void seekNextFrame(int diff)

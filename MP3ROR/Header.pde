@@ -111,7 +111,7 @@ class Header
   }
 }
 
-Header tryMakeHeader(ByteBuffer buf, int pos)
+Header tryMakeHeader(ByteBuffer buf, int pos, boolean beExtraSafe)
 {
   // First 8 bits must be inside the sync word.
   if (buf.get(pos) != (byte)0xFF)
@@ -124,7 +124,7 @@ Header tryMakeHeader(ByteBuffer buf, int pos)
   
   // If we're not at the end, check that another header starts after this frame.
   int frameLength = header.frameLengthInBytes;
-  if (pos + frameLength + 1 < buf.limit()) {
+  if (beExtraSafe && pos + frameLength + 1 < buf.limit()) {
     if (buf.get(pos + frameLength) != (byte)0xFF)
       return null;
     if (!new Header(buf, pos + frameLength).valid)
@@ -138,7 +138,7 @@ Header tryMakeHeader(ByteBuffer buf, int pos)
 int getBitrateFromIndex(MPEGVersion mpegVersion, Layer layer, int bitrateIndex)
 {
   assert(layer == Layer.LAYER3);
-  if (mpegVersion == MPEGVersion.MPEG1) //<>//
+  if (mpegVersion == MPEGVersion.MPEG1)
   {
     int[] bitrates = {-1, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, -1};
     return bitrates[bitrateIndex];
@@ -152,7 +152,7 @@ int getBitrateFromIndex(MPEGVersion mpegVersion, Layer layer, int bitrateIndex)
 
 int getSamplingFrequencyFromIndex(MPEGVersion mpegVersion, int samplingRateIndex)
 {
-  if (mpegVersion == MPEGVersion.MPEG1) //<>//
+  if (mpegVersion == MPEGVersion.MPEG1)
   {
     int[] frequencies = {44100, 48000, 32000, -1};
     return frequencies[samplingRateIndex];

@@ -83,7 +83,7 @@ void test4()
   
   assert(header.valid);
   assert(header.version == MPEGVersion.MPEG1);
-  assert(header.layer == Layer.LAYER3); //<>//
+  assert(header.layer == Layer.LAYER3);
   assert(header.crcProtection == false);
   assert(header.bitrateKbps == 160);
   assert(header.sampleRateHz == 44100);
