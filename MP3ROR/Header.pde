@@ -49,14 +49,14 @@ class Header
     buf.rewind();
     bits = toProperBitset(bytes);
     
-    BitSet syncBits = bits.get(0, 12); //<>//
+    BitSet syncBits = bits.get(0, 12);
     syncBits.flip(0, 12);
     if (!syncBits.isEmpty())
       return;
     
     version = bits.get(12) ? MPEGVersion.MPEG1 : MPEGVersion.MPEG2;
     layer = Layer.values()[intFromBits(bits, 13, 2)];
-    if (layer != Layer.LAYER3)
+    if (layer == Layer.RESERVED)
       return;
     crcProtection = !bits.get(15);
     
@@ -83,8 +83,10 @@ class Header
     
     valid = true;
     
-    
-    frameLengthInBytes = (int)(144 * bitrateKbps / (sampleRateHz / 1000.0)) + (padding ? 1 : 0);
+    if (layer != Layer.LAYER1)
+      frameLengthInBytes = (int)(144 * bitrateKbps / (sampleRateHz / 1000.0)) + (padding ? 1 : 0);
+    else
+      frameLengthInBytes = (int)(12 * bitrateKbps / (sampleRateHz / 1000.0)) + (padding ? 1 : 0);
   }
   
   void drawOn(PGraphics g)
@@ -137,14 +139,22 @@ Header tryMakeHeader(ByteBuffer buf, int pos, boolean beExtraSafe)
 
 int getBitrateFromIndex(MPEGVersion mpegVersion, Layer layer, int bitrateIndex)
 {
-  assert(layer == Layer.LAYER3);
   if (mpegVersion == MPEGVersion.MPEG1)
   {
-    int[] bitrates = {-1, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, -1};
-    return bitrates[bitrateIndex];
+    int[] bitratesL1 = {-1, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, -1};
+    int[] bitratesL2 = {-1, 32, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, -1};
+    int[] bitratesL3 = {-1, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, -1};
+    if (layer == Layer.LAYER1)
+      return bitratesL1[bitrateIndex];
+    else if (layer == Layer.LAYER2)
+      return bitratesL2[bitrateIndex];
+    else
+      return bitratesL3[bitrateIndex];
   }
   else
   {
+    if (layer != Layer.LAYER3)
+      return -1;
     int[] bitrates = {-1, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, -1};
     return bitrates[bitrateIndex];
   }
