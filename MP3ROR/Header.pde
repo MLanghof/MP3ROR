@@ -49,7 +49,7 @@ class Header
     buf.rewind();
     bits = toProperBitset(bytes);
     
-    BitSet syncBits = bits.get(0, 12); //<>//
+    BitSet syncBits = bits.get(0, 12);
     syncBits.flip(0, 12);
     if (!syncBits.isEmpty())
       return;

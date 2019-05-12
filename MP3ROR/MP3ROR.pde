@@ -10,15 +10,18 @@ import ddf.minim.*;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
+
 Minim minim;  
 AudioPlayer player;
 
-String hardcodedFilePath = "D:/Users/Max/Music/Electronic/Fresch/KDrew - Last Train To Paradise (Dr. Fresch Remix).mp3";
+//String hardcodedFilePath = "D:/Users/Max/Music/Electronic/Fresch/KDrew - Last Train To Paradise (Dr. Fresch Remix).mp3";
 //String hardcodedFilePath = "D:/Users/Max/Music/Electronic/Fresch/02_-_Destroy_Everything_You_Touch.mp3";
 //String hardcodedFilePath = "D:/Users/Max/Music/Electronic/Fresch/06_-_Know_Your_Enemy.mp3";
 //String hardcodedFilePath = "D:/Users/Max/Music/Electronic/Fresch/07_-_Last_Nite.mp3";
 //String hardcodedFilePath = "D:/Users/Max/Music/Electronic/Fresch/01 Sehnsucht.mp3";
-//String hardcodedFilePath = "D:/Users/Max/Music/Electronic/Fresch/potato.mp3";
+String hardcodedFilePath = "D:/Users/Max/Music/Electronic/Fresch/potatocbr.mp3";
 
 byte[] songBytes;
 
@@ -29,6 +32,7 @@ int currentFrameIndex = 0;
 
 
 ArrayList<PhysicalFrame> frames;
+LogicalFrame[] logicalFrames;
 
 ArrayList<ICache> caches = new ArrayList();
 FrameValueCache totalGranuleLengths = register(new FrameValueCache(new AverageAllGranuleLengthCalc(), true));
@@ -145,7 +149,7 @@ void draw()
   text("Player: " + player.position() / 1000.0, width - 120, 40);
 }
 
-void keyPressed()
+void keyPressed(KeyEvent e)
 {
   if (!doneLoading)
     return;
@@ -191,6 +195,10 @@ void keyPressed()
     case 'w':
       showWaveform = !showWaveform;
       break;
+      
+    case 'c':
+      //if (e.isControlDown()) //<>//
+        copyBytesToClipboard();
   }
     
 }
@@ -212,7 +220,6 @@ void mousePressed()
 void mouseWheel(MouseEvent event)
 {
   plotFramesPerDot *= pow(0.98, -event.getCount());
-  println(plotFramesPerDot);
 }
 
 
@@ -262,6 +269,20 @@ color getByteColor(int index, PhysicalFrame frame)
   return color(50, 255, 50);
 }
 
+void copyBytesToClipboard()
+{
+  int index = frames.get(currentFrameIndex).headerStartByte - byteOffset;
+  index = constrain(index, 0, songBytes.length - 1);
+  
+  StringBuilder sb = new StringBuilder();
+  for (int i = 0; i < 100 * BYTES_PER_ROW; ++i)
+    sb.append(hex(songBytes[index + i], 2)).append(" ");
+  
+  Toolkit toolkit = Toolkit.getDefaultToolkit();
+  toolkit.getSystemClipboard().setContents(new StringSelection(sb.toString()), null);
+  println("Copied visible bytes to clipboard");
+}
+
 void loadHardcodedFile()
 {
   onFileSelected(new File(hardcodedFilePath));
@@ -279,6 +300,7 @@ void onFileSelected(File file)
   println("Loaded", songBytes.length, "bytes from", filePath);
   
   parseBytes(songBytes);
+  //logicalFrames = convertToLogicalFrames(frames, ByteBuffer.wrap(songBytes));
   
   println("Done parsing", frames.size(), "frames!");
   

@@ -44,7 +44,9 @@ class PhysicalFrame
     g.translate(0, 30);
     header.drawOn(g);
     
-    g.translate(0, 30);
+    g.text("Header + side info length: " + headerAndSideInfoLengthInBytes, 0, 20);
+    
+    g.translate(0, 60);
     sideInformation.drawOn(g);
   }
 }
